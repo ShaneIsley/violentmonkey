@@ -136,6 +136,7 @@ async function update() {
     } else if (raw.startsWith('data:image')) {
       img = raw;
     } else {
+      if (raw[0] === '!' || raw[0] === '=') raw = raw.slice(1);
       [contentType, code] = raw.split(',');
       if (code == null) { // workaround for bugs in old VM, see 2e135cf7
         const fileExt = url.match(/\.(\w+)([#&?]|$)/)?.[1] || '';

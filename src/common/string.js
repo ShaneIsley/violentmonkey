@@ -75,6 +75,7 @@ export function trueJoin(separator) {
  */
 export function makeDataUri(raw, url) {
   if (isDataUri(url)) return url;
+  if (raw && (raw[0] === '!' || raw[0] === '=')) raw = raw.slice(1);
   if (/^(i,|image\/)/.test(raw)) { // workaround for bugs in old VM, see 2e135cf7
     const i = raw.lastIndexOf(',');
     const type = raw.startsWith('image/') ? raw.slice(0, i) : 'image/png';
@@ -90,7 +91,25 @@ export function makeDataUri(raw, url) {
 export async function makeRaw(response) {
   const type = (response.headers.get('content-type') || '').split(';')[0] || '';
   const body = await blob2base64(response.data);
-  return `${type},${body}`;
+  const prefix = hasBinaryBytes(body) ? '!' : '=';
+  return `${prefix}${type},${body}`;
+}
+
+/** Prepend '!' (binary) or '=' (text) marker to an existing raw cache string */
+export function addBinaryMarker(raw) {
+  if (!raw) return raw;
+  const comma = raw.indexOf(',');
+  const body = comma < 0 ? raw : raw.slice(comma + 1);
+  return (hasBinaryBytes(body) ? '!' : '=') + raw;
+}
+
+function hasBinaryBytes(base64str) {
+  if (!base64str) return false;
+  const decoded = atob(base64str);
+  for (let i = 0; i < decoded.length; i++) {
+    if (decoded.charCodeAt(i) >= 0x80) return true;
+  }
+  return false;
 }
 
 export function loadQuery(string) {

@@ -14,8 +14,22 @@ const RESOURCE_TEXT = 'abcd\u1234\u2345\u3456\u4567\u5678\u6789\u789A\u89AB\u9AB
 const DATA = `text/plain,${stringAsBase64(RESOURCE_TEXT)}`;
 const DATA_URL = `data:${DATA.replace(',', ';base64,')}`;
 
-test('@resource decoding', async () => {
+test('@resource decoding (old format, no marker)', async () => {
   expect(decodeResource(DATA)).toEqual(RESOURCE_TEXT);
   expect(await blobAsText(URL.blobCache[decodeResource(DATA, true)])).toEqual(RESOURCE_TEXT);
   expect(decodeResource(DATA, false)).toEqual(DATA_URL);
+});
+
+test('@resource decoding with ! (binary) marker', async () => {
+  const markedData = `!${DATA}`;
+  expect(decodeResource(markedData)).toEqual(RESOURCE_TEXT);
+  expect(await blobAsText(URL.blobCache[decodeResource(markedData, true)])).toEqual(RESOURCE_TEXT);
+  expect(decodeResource(markedData, false)).toEqual(DATA_URL);
+});
+
+test('@resource decoding with = (text) marker', () => {
+  const textContent = 'hello world';
+  const textData = `=text/plain,${btoa(textContent)}`;
+  expect(decodeResource(textData)).toEqual(textContent);
+  expect(decodeResource(textData, false)).toEqual(`data:text/plain;base64,${btoa(textContent)}`);
 });

@@ -1,4 +1,5 @@
 import {
+  addBinaryMarker, compareVersion,
   dataUri2text, i18n, getScriptHome, isDataUri,
   getScriptName, getScriptsTags, getScriptUpdateUrl, isRemote, sendCmd, trueJoin,
   getScriptPrettyUrl, getScriptRunAt, makePause, isValidHttpUrl, normalizeTag,
@@ -190,8 +191,25 @@ addOwnCommands({
   }, 100);
   checkRemove();
   setInterval(checkRemove, TIMEOUT_24HOURS);
+  if (versionChanged && compareVersion(lastVersion, '2.35.0') <= 0) {
+    migrateCacheMarkers();
+  }
   resolveInit();
 })();
+
+/** Add binary/text marker prefix to cache entries stored before 2.35.1 */
+async function migrateCacheMarkers() {
+  const all = await storage[S_CACHE].getMulti();
+  const updates = {};
+  let count = 0;
+  for (const [id, raw] of Object.entries(all)) {
+    if (raw && raw[0] !== '!' && raw[0] !== '=') {
+      updates[id] = addBinaryMarker(raw);
+      count++;
+    }
+  }
+  if (count) await storage[S_CACHE].set(updates);
+}
 
 /** @return {number} */
 function getInt(val) {

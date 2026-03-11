@@ -55,6 +55,9 @@ export const makeElem = (tag, attrs) => {
 
 export const decodeResource = (raw, isBlob) => {
   let res;
+  const flag = raw[0];
+  const hasMark = flag === '!' || flag === '=';
+  if (hasMark) raw = raw::slice(1);
   const pos = raw::stringIndexOf(',');
   const mimeType = pos < 0 ? '' : raw::slice(0, pos);
   const mimeData = pos < 0 ? raw : raw::slice(pos + 1);
@@ -62,9 +65,9 @@ export const decodeResource = (raw, isBlob) => {
     return `data:${mimeType};base64,${mimeData}`;
   }
   res = safeAtob(mimeData);
-  // TODO: do the check in BG and cache/store the result because safe-guarding all the stuff
-  // regexp picks from an instance internally is inordinately complicated
-  if (/[\x80-\xFF]/::regexpTest(res)) {
+  // The binary marker is set in BG by makeRaw(). The regex fallback handles old cached entries
+  // that haven't been migrated yet (see migrateCacheMarkers in db.js).
+  if ((hasMark ? flag === '!' : /[\x80-\xFF]/::regexpTest(res))) {
     if (U8_fromBase64) {
       res = U8_fromBase64(mimeData);
     } else {
